@@ -1,46 +1,79 @@
 package ru.itis.flux.clients;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
+import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.ConnectionFactories;
+import io.r2dbc.spi.ConnectionFactory;
+import io.r2dbc.spi.ConnectionFactoryOptions;
+import org.springframework.data.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
-import ru.itis.flux.entries.ApiDataResponse;
+import reactor.core.publisher.Mono;
 import ru.itis.flux.entries.DataSample;
-import ru.itis.flux.services.PeopleService;
+import ru.itis.flux.entries.PersonDBRecord;
+
+import static io.r2dbc.spi.ConnectionFactoryOptions.*;
 
 @Component
 public class ApiFreeDataDBClientImpl implements ApiFreeDataClient {
 
-    private WebClient client;
-
-    @Autowired
-    private PeopleService peopleService;
-
+    private Mono<Connection> connectionMono;
+    private ConnectionFactory connectionFactory;
 
     public ApiFreeDataDBClientImpl() {
-        client = WebClient.builder()
-                .exchangeStrategies(ExchangeStrategies.builder()
-                        .codecs(clientCodecConfigurer -> clientCodecConfigurer.defaultCodecs().maxInMemorySize(100 * 1024 * 1024))
-                        .build())
+        ConnectionFactoryOptions options = builder()
+                .option(DRIVER, "postgresql")
+                .option(PORT, 5432)
+                .option(HOST, "localhost")
+                .option(USER, "postgres")
+                .option(PASSWORD, "postgres")
+                .option(DATABASE, "fluxdata")
                 .build();
+        this.connectionFactory = ConnectionFactories.get(options);
+
+        this.connectionMono = Mono.from(connectionFactory.create());
     }
 
     @Override
     public Flux<DataSample> getAll() {
-        return client.get()
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .flatMap(clientResponse -> clientResponse.bodyToMono(ApiDataResponse.class))
-                .flatMapIterable(ApiDataResponse::getData)
-                .map(record ->
-                        DataSample.builder()
-//                                .country(record.getCountryCode())
-//                                .dateTime(record.getDate())
-//                                .from("TheVirusTracker")
-//                                .recovered(Integer.parseInt(record.getRecovered()))
-                                .build());
+        DatabaseClient client = DatabaseClient.create(connectionFactory);
+
+        return
+        client.execute("select * from \"user\"").as(PersonDBRecord.class).fetch().all()
+                .map(row -> DataSample.builder()
+                        .id(row.getId())
+                        .title(row.getName())
+                        .url(row.getVkcom())
+                        .from("DataBase")
+                        .build()
+        );
+//        return connectionMono
+//                .flatMapMany(connection -> connection
+//                    .createStatement("SELECT * FROM user")
+//                        .returnGeneratedValues("id", "name", "vkcom")
+//                    .execute())
+//                .flatMap(o -> o.map((row, rowMetadata) -> row.get("id", Long.class)))
+//
+//                .flatMapIterable(Arrays::asList)
+//                .map(record ->
+//                        DataSample.builder()
+////                                .id(record.getId())
+////                                .title(record.getName())
+////                                .url(record.getVkcom())
+//                                .from("DB")
+//                                .build());
+
+//        return client.get()
+//                .accept(MediaType.APPLICATION_JSON)
+//                .exchange()
+//                .flatMap(clientResponse -> clientResponse.bodyToMono(PeopleService.class))
+//                .flatMapIterable(PeopleService::getAll)
+//                .map(record ->
+//                        DataSample.builder()
+//                                .id(record.getId())
+//                                .title(record.getName())
+//                                .url(record.getVkcom())
+//                                .from("DB")
+//                                .build());
     }
+
 }

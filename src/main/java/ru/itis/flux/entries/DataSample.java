@@ -13,5 +13,6 @@ public class DataSample {
     private Long id;
     private String title;
     private String url;
+    private String from;
 
 }

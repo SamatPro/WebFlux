@@ -12,11 +12,12 @@ import ru.itis.flux.entries.DataSample;
 import java.util.Arrays;
 
 @Component
-public class Covid19ApiClientWebClientImpl implements ApiFreeDataClient {
+public class ApiFreeWebClientImpl implements ApiFreeDataClient {
 
     private WebClient client;
 
-    public Covid19ApiClientWebClientImpl(@Value("${weather.url}") String url) {
+
+    public ApiFreeWebClientImpl(@Value("${weather.url}") String url) {
         client = WebClient.builder()
                 .exchangeStrategies(ExchangeStrategies.builder()
                         .codecs(clientCodecConfigurer -> clientCodecConfigurer.defaultCodecs().maxInMemorySize(100 * 1024 * 1024))
@@ -34,10 +35,10 @@ public class Covid19ApiClientWebClientImpl implements ApiFreeDataClient {
                 .flatMapIterable(Arrays::asList)
                 .map(record ->
                         DataSample.builder()
-//                                .country(record.getCountryCode())
-//                                .dateTime(record.getDate())
-//                                .from("Covid19Api")
-//                                .recovered(record.getRecovered())
+                                .id(record.getId())
+                                .title(record.getTitle())
+                                .url(record.getUrl())
+                                .from("Web")
                                 .build());
     }
 }
