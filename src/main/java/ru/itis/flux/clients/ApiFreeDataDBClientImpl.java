@@ -16,7 +16,6 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.*;
 @Component
 public class ApiFreeDataDBClientImpl implements ApiFreeDataClient {
 
-    private Mono<Connection> connectionMono;
     private ConnectionFactory connectionFactory;
 
     public ApiFreeDataDBClientImpl() {
@@ -29,16 +28,12 @@ public class ApiFreeDataDBClientImpl implements ApiFreeDataClient {
                 .option(DATABASE, "fluxdata")
                 .build();
         this.connectionFactory = ConnectionFactories.get(options);
-
-        this.connectionMono = Mono.from(connectionFactory.create());
     }
 
     @Override
     public Flux<DataSample> getAll() {
         DatabaseClient client = DatabaseClient.create(connectionFactory);
-
-        return
-        client.execute("select * from \"user\"").as(PersonDBRecord.class).fetch().all()
+        return client.execute("select * from \"user\"").as(PersonDBRecord.class).fetch().all()
                 .map(row -> DataSample.builder()
                         .id(row.getId())
                         .title(row.getName())
@@ -46,34 +41,6 @@ public class ApiFreeDataDBClientImpl implements ApiFreeDataClient {
                         .from("DataBase")
                         .build()
         );
-//        return connectionMono
-//                .flatMapMany(connection -> connection
-//                    .createStatement("SELECT * FROM user")
-//                        .returnGeneratedValues("id", "name", "vkcom")
-//                    .execute())
-//                .flatMap(o -> o.map((row, rowMetadata) -> row.get("id", Long.class)))
-//
-//                .flatMapIterable(Arrays::asList)
-//                .map(record ->
-//                        DataSample.builder()
-////                                .id(record.getId())
-////                                .title(record.getName())
-////                                .url(record.getVkcom())
-//                                .from("DB")
-//                                .build());
-
-//        return client.get()
-//                .accept(MediaType.APPLICATION_JSON)
-//                .exchange()
-//                .flatMap(clientResponse -> clientResponse.bodyToMono(PeopleService.class))
-//                .flatMapIterable(PeopleService::getAll)
-//                .map(record ->
-//                        DataSample.builder()
-//                                .id(record.getId())
-//                                .title(record.getName())
-//                                .url(record.getVkcom())
-//                                .from("DB")
-//                                .build());
     }
 
 }

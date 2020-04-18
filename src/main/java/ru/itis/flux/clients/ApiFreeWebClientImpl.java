@@ -16,7 +16,6 @@ public class ApiFreeWebClientImpl implements ApiFreeDataClient {
 
     private WebClient client;
 
-
     public ApiFreeWebClientImpl(@Value("${weather.url}") String url) {
         client = WebClient.builder()
                 .exchangeStrategies(ExchangeStrategies.builder()
